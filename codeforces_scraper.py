@@ -16,7 +16,7 @@ def get_submission_ids(name, language, ver):
 	
 	# check your JSESSIONID and 39ce7 from cookies'''
 
-	d = {'JSESSIONID': 'F01EBC6E9420AC697ABBBFBD3759C06E-n1', '39ce7': 'CF3FCRiI'}
+	d = {'JSESSIONID': '38394F746A5A47E823B68D943B704931-n1', '39ce7': 'CFFq98Ot'}
 
 	url = 'https://codeforces.com/contest/' + name[0] + '/status/page/'
 
@@ -71,7 +71,7 @@ def get_submission_ids(name, language, ver):
 		message = ""
 		raw = str(row)
 		body = re.search('submissionid="(.*)" t', raw)
-		
+
 		if body != None:
 			w = body.group(1)
 			message = str(w)
@@ -181,10 +181,10 @@ def get_description(info):
 	return descriptions, left_out, failed_to_download_d
 
 
-def get_submissions(contest, submission_ids):
+def get_submissions(contest, submission_ids, l, ver):
 	submissions = {}
 	for i in submission_ids:
-		data = get_submission(contest, i)
+		data = get_submission(contest, i, l, ver)
 		if data[2] == None:
 			submissions[data[0]] = data[1]
 
@@ -200,9 +200,8 @@ def get_submissions(contest, submission_ids):
 
 	return submissions
 
-def get_submission(contest, submission_id):
+def get_submission(contest, submission_id, l, ver):
 	url = 'http://codeforces.com/contest/' + str(contest[0]) + '/submission/' + str(submission_id)
-	
 	print(url)
 
 	page = requests.get(url)
@@ -212,7 +211,7 @@ def get_submission(contest, submission_id):
 			page = requests.get(url)
 	html_content = page.text
 
-	#print html_content
+	# table_content = re.search('<div class="datatable""(.*?)</div>', html_content).group(1)
 
 	soup = BeautifulSoup(html_content, "html.parser")
 
@@ -230,7 +229,19 @@ def get_submission(contest, submission_id):
 		body = body.replace("\\","\\\\")
 		submission = body.encode('utf-8').decode('unicode-escape')
 
-	return submission_id, submission, failed_to_download
+
+	submission_content = {}
+
+	submission_content["lang"] = l
+	submission_content["source_code"] = submission
+
+	submission_content["tags"] = contest[3]
+	submission_content["lang_cluster"] = l
+	submission_content["id"] = contest[0] + "-" + contest[1]
+	submission_content["difficulty"] = contest[2]
+	submission_content["exec_outcome"] = ver
+
+	return submission_id, submission_content, failed_to_download
 
 def download_descriptions_solutions(filename, index_n):
 	root_dir = 'codeforces_data'
@@ -295,7 +306,7 @@ def download_descriptions_solutions(filename, index_n):
 					ids_l.append(ids)
 
 					print("ids: ", ids)
-					submissions = get_submissions(info, ids)
+					submissions = get_submissions(info, ids, l, ver)
 					
 					print('len(submissions): ', len(submissions))
 
@@ -306,10 +317,14 @@ def download_descriptions_solutions(filename, index_n):
 						os.makedirs(submission_dir)
 
 					for _, j in enumerate(submissions):
-						if len(submissions[j]) < 10000:
-							submission_file_path = submission_dir + "/" + j + ".txt"
-							submission_file = open(submission_file_path, 'w', encoding = 'utf-8')
-							submission_file.write(submissions[j])
+						submission_file_path = submission_dir + "/" + j + ".txt"
+						with open(submission_file_path, 'w', encoding='utf-8') as submission_file:
+							json.dump(submissions[j], submission_file)
+
+						# if len(submissions[j]) < 10000:
+						# 	submission_file_path = submission_dir + "/" + j + ".txt"
+						# 	submission_file = open(submission_file_path, 'w', encoding = 'utf-8')
+						# 	submission_file.write(submissions[j])
 
 				if len(ids_l) == 0:
 					shutil.rmtree(solution_dir)
