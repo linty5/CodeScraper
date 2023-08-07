@@ -11,15 +11,13 @@ def sub_strip(matchobj):
     return matchobj.group(0).replace(u"\u2009", "")
 
 
-def get_solution_ids(name, language):
+def get_submission_ids(name, language, ver):
 	
 	# check your JSESSIONID and 39ce7 from cookies'''
 
 	d = {'JSESSIONID': 'F01EBC6E9420AC697ABBBFBD3759C06E-n1', '39ce7': 'CF3FCRiI'}
 
 	url = 'https://codeforces.com/contest/' + name[0] + '/status/page/'
-
-	# https://codeforces.com/contest/1852/status/page/
 
 	c = requests.get(url, cookies = d)
 
@@ -29,51 +27,29 @@ def get_solution_ids(name, language):
 		raise 'unable to get csrf token'
 
 	csrf_token = m.groups(1)[0]
+
+	language_dict = {'c': 'c.gcc11', 'c++': 'cpp.g++17', 'python3': 'python.3', 'python2': 'python.2',
+		  			 'php': 'php.5', 'kotlin16': 'kotlin16', 'kotlin17': 'kotlin17', 'ruby': 'ruby.3',
+					 'javascript': 'v8.3', 'nodejs': 'v8.nodejs', 'rust': 'rust.2021', 'java17': 'java17', 
+		  			 'delphi': 'pas.dpr', 'perl': 'perl.5', 'd': 'd', 'haskell': 'haskell.ghc', 
+					 'ocaml': 'ocaml', 'fpc': 'pas.fpc', 'pascalabc': 'pas.pascalabc'}
 	
-	if language == 'delphi':
-		print("delphi_search")
-		c = requests.post(url,
-		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 'verdictName':'OK', 'programTypeForInvoker':'pas.dpr', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
-		headers = {'X-Csrf-Token':csrf_token},
-		cookies = d
-		)
-	elif language == 'java17':
-		print("java17_search")
-		c = requests.post(url,
-		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 'verdictName':'OK', 'programTypeForInvoker':'java17', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
-		headers = {'X-Csrf-Token':csrf_token},
-		cookies = d
-		)
-	elif language == 'perl':
-		print("perl_search")
-		c = requests.post(url,
-		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 'verdictName':'OK', 'programTypeForInvoker':'perl.5', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
-		headers = {'X-Csrf-Token':csrf_token},
-		cookies = d
-		)
-	elif language == 'd':
-		print("d_search")
-		c = requests.post(url,
-		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 'verdictName':'OK', 'programTypeForInvoker':'d', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
-		headers = {'X-Csrf-Token':csrf_token},
-		cookies = d
-		)
-	elif language == 'python3':
-		print("python3_search")
-		c = requests.post(url,
-		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 'verdictName':'REJECTED', 'programTypeForInvoker':'python.3', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
-		headers = {'X-Csrf-Token':csrf_token},
-		cookies = d
-		)
-	elif language == 'c++':
-		print("c++_search")
-		c = requests.post(url, 
-		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 'verdictName':'MEMORY_LIMIT_EXCEEDED', 'programTypeForInvoker':'cpp.g++', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
-		headers = {'X-Csrf-Token':csrf_token},
-		cookies = d
-		)
-	else:
-		pass
+	if language not in language_dict:
+		print("Haven't include this language --> ", language)
+
+	# ver_default = 'anyVerdict'
+	# ver_simpledict = {'OK': 'OK', 'REJECTED': 'REJECTED'}
+	ver_dict = {'OK': 'OK', 'WA': 'WRONG_ANSWER', 'RE': 'RUNTIME_ERROR', 'TLE': 'TIME_LIMIT_EXCEEDED', 'MLE': 'MEMORY_LIMIT_EXCEEDED', 'CE': 'COMPILATION_ERROR'}
+
+	print(language, " search, value: ", language_dict[language], " ver: ", ver_dict[ver])
+
+	c = requests.post(url,
+	data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 
+	 	    'verdictName':ver_dict[ver], 'programTypeForInvoker':language_dict[language], 
+			'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
+	headers = {'X-Csrf-Token':csrf_token},
+	cookies = d
+	)
 
 	page = requests.get(url, cookies = d)
 	if str(page) == "<Response [503]>":
@@ -100,7 +76,7 @@ def get_solution_ids(name, language):
 			message = str(w)
 			messages.append(message)
 			count += 1
-			if count == 5:
+			if count == 3:
 				break
 
 	return messages
@@ -134,7 +110,6 @@ def get_description(i):
 	if html_content==None:
 		failed_to_download_d.append(i)
 
-	#print html_content
 
 	if re.search('src="http://codeforces.com/predownloaded', html_content.replace("\\", "")) == None and re.search('src="http://espresso.codeforces.com', html_content.replace("\\", "")) == None and re.search('"message":"Problem is not visible now. Please try again later."', html_content) == None and re.search('Statement is not available', html_content) == None:
 
@@ -143,9 +118,6 @@ def get_description(i):
 		#if body == None:
 
 		#body = BeautifulSoup(page.json()['body']).get_text()
-
-		print(i)
-		#print body
 
 		#w = body.group(1)
 		w = body[0]
@@ -174,7 +146,10 @@ def get_description(i):
 
 		w = w.replace("\\","\\\\")
 
-		descriptions.append(w) #.encode('utf-8').decode('string-escape'))
+		w = w.replace("\xe2"," ")
+		w = w.replace("\xc2"," ")
+
+		descriptions.append(w.encode('utf-8').decode('raw_unicode-escape'))
 	else:
 		left_out.append(i)
 
@@ -182,12 +157,12 @@ def get_description(i):
 	return descriptions, left_out, failed_to_download_d
 
 
-def get_solutions(contest, solution_ids):
-	solutions = {}
-	for i in solution_ids:
-		data = get_solution(contest, i)
+def get_submissions(contest, submission_ids):
+	submissions = {}
+	for i in submission_ids:
+		data = get_submission(contest, i)
 		if data[2] == None:
-			solutions[data[0]] = data[1]
+			submissions[data[0]] = data[1]
 
 	# #failed_to_download_s = []
 	# with concurrent.futures.ProcessPoolExecutor(max_workers=8) as executor:
@@ -199,10 +174,10 @@ def get_solutions(contest, solution_ids):
 	# 		if data[2] == None:
 	# 			solutions[data[0]] = data[1]
 
-	return solutions
+	return submissions
 
-def get_solution(contest, solution_id):
-	url = 'http://codeforces.com/contest/' + str(contest[0]) + '/submission/' + str(solution_id)
+def get_submission(contest, submission_id):
+	url = 'http://codeforces.com/contest/' + str(contest[0]) + '/submission/' + str(submission_id)
 	
 	print(url)
 
@@ -220,18 +195,18 @@ def get_solution(contest, solution_id):
 	text = soup.select("body > div > div > div > div > pre")
 
 	failed_to_download = None
-	solution = None
+	submission = None
 
 
 	if len(text)==0:
-		failed_to_download = solution_id
+		failed_to_download = submission_id
 	else:
 		body = BeautifulSoup(str(text[0]), "html.parser").get_text()
 
 		body = body.replace("\\","\\\\")
-		solution = body# .encode('utf-8').decode('string-escape')
+		submission = body.encode('utf-8').decode('raw_unicode-escape')
 
-	return solution_id, solution, failed_to_download
+	return submission_id, submission, failed_to_download
 
 
 
@@ -246,7 +221,7 @@ def download_descriptions_solutions(filename, index_n):
 
 	all_names = raw[::-1]
 
-	language = ["c++", "delphi", "perl", "python3"] # , "delphi", "perl", "d", "c++"]
+	language = ["delphi", "perl", "d", "java17", "python3", "c++", "c"]
 
 	for _, name in enumerate(all_names):
 
@@ -280,48 +255,47 @@ def download_descriptions_solutions(filename, index_n):
 			description_file = open(description_file_path, 'w', encoding='utf-8')
 			description_file.write(descriptions[0])
 
-			ids_l = []
-			print(language)
 			for l in language:
-				print("l: ", l)
-				ids = get_solution_ids(name, l)
-				ids_l.append(ids)
-
-				print("ids: ", ids)
-				#solutions, failed_to_download_s = get_solutions(i, ids)
-				solutions = get_solutions(name, ids)
-				#print failed_to_download_s
-
-				solution_dir = save_dir + "/solutions_" + l
+					
+				solution_dir = save_dir + "/" + l
 
 				if not os.path.exists(solution_dir):
 					os.makedirs(solution_dir)
 
-				#print solutions
+				# ver_simplelist = ['OK', 'REJECTED']
+				ver_list = ['OK', 'WA', 'RE', 'TLE', 'MLE', 'CE']
 
-				print('len(solutions): ', len(solutions))
+				ids_l = []
 
+				for ver in ver_list:
+					
+					submission_dir = solution_dir + "/" + ver
 
-				for _, j in enumerate(solutions):
-					#solutions[j]
-					if len(solutions[j]) < 10000:
-						#solution_file_path = solution_dir + "/" + ids[jdx] + ".txt"
-						solution_file_path = solution_dir + "/" + j + ".txt"
-						solution_file = open(solution_file_path, 'w')
-						solution_file.write(solutions[j])
+					ids = get_submission_ids(name, l, ver)
+					ids_l.append(ids)
 
+					print("ids: ", ids)
+					submissions = get_submissions(name, ids)
+					
+					print('len(submissions): ', len(submissions))
 
-			#remove problems with zero solutions
-			#'''
-			if len(ids_l[0]) == 0 and len(ids_l[1]) == 0:
-				shutil.rmtree(save_dir)
-				#'''
+					if len(submissions) == 0:
+						continue
 
-		#'''
-		# print("Finished download process")
+					if not os.path.exists(submission_dir):
+						os.makedirs(submission_dir)
+
+					for _, j in enumerate(submissions):
+						if len(submissions[j]) < 10000:
+							submission_file_path = submission_dir + "/" + j + ".txt"
+							submission_file = open(submission_file_path, 'w', encoding = 'utf-8')
+							submission_file.write(submissions[j])
+
+				if len(ids_l) == 0:
+					shutil.rmtree(solution_dir)
+
 		if len(failed_to_download_d) > 0:
 			print("Following challenges failed to download: " + str(failed_to_download_d))
-	    #'''
 	
 parser = argparse.ArgumentParser()
 parser.add_argument('--index', type=str, default="0", help='')
@@ -329,5 +303,5 @@ args = parser.parse_args()
 
 index_n = args.index
 
-download_descriptions_solutions('challenges_all.txt', index_n)
+download_descriptions_solutions('challenges_sampled.txt', index_n)
 

@@ -3,6 +3,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 import time
+import random
 
 def get_problem_list(url):
 	page = requests.get(url)
@@ -42,6 +43,11 @@ def download_all_challenge_names(filename):
 		for jdx, j in enumerate(l):
 			if jdx % 2 == 0:
 				problem_list.append(j)
-	target.write(str(problem_list))
 
-download_all_challenge_names('challenges_all.txt')
+	random.shuffle(problem_list)
+
+	target.write(str(problem_list[:150]))
+
+# download_all_challenge_names('challenges_all.txt')
+
+download_all_challenge_names('challenges_sampled.txt')
