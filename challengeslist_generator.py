@@ -3,10 +3,12 @@ import re
 import requests
 from bs4 import BeautifulSoup
 import time
+import json
 import random
 from tqdm import *
 
-def get_problem_list(url):
+def get_problem_list(url, content):
+	
 	page = requests.get(url)
 	if str(page) == "<Response [503]>":
 		while str(page) == "<Response [503]>":
@@ -15,8 +17,6 @@ def get_problem_list(url):
 	html_content = page.text
 
 	soup = BeautifulSoup(html_content, "html.parser") # making soap
-
-	messages = []
 
 	case = soup.select("body tr")
 
@@ -27,7 +27,7 @@ def get_problem_list(url):
 		if body != None:
 			w = body.group(1)
 			message = str(w)
-			c = message.split('/')
+			c = list(message.split('/'))
 
 			difficulty = re.search('<span class="ProblemRating" title="Difficulty">(.*)</span>', raw)
 			if difficulty != None:
@@ -40,25 +40,24 @@ def get_problem_list(url):
 			for tag in tags:
 				tags_clean.append(tag.split('=')[1])
 			c.append(tags_clean)
+			content["infos"].append(c)
 
-			messages.append(c)
-	return messages
+	return content
 
 def download_all_challenge_names(filename):
-	target = open(filename, 'w')
+	content = {"infos":[]}
 
-	problem_list = []
+	for page_idx in tqdm(range(1,89)):
+		page_url = 'http://codeforces.com/problemset/page/' + str(page_idx+1)
+		content = get_problem_list(page_url, content)
 
-	for i in tqdm(range(0,89)):
-		a = 'http://codeforces.com/problemset/page/' + str(i+1)
-		l = get_problem_list(a)
-		for jdx, j in enumerate(l):
-			if jdx % 2 == 0:
-				problem_list.append(j)
+	with open(filename, 'w', encoding='utf-8') as target:
+		json.dump(content, target)
 
-	random.shuffle(problem_list)
-	target.write(str(problem_list[:150]))
+	random.shuffle(content["infos"])
+	sampled_content = {"infos": content["infos"][:150]}
 
-# download_all_challenge_names('challenges_all.txt')
+	with open('challenges_sampled.json', 'w', encoding='utf-8') as target:
+		json.dump(sampled_content, target)
 
-download_all_challenge_names('challenges_sampled.txt')
+download_all_challenge_names('challenges_all.json')
