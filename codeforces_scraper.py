@@ -15,9 +15,11 @@ def get_solution_ids(name, language):
 	
 	# check your JSESSIONID and 39ce7 from cookies'''
 
-	d = {'JSESSIONID': '6C0456C72CD86004C649DE9BC8BEB4ED-n1', '39ce7': 'CF2gvKWD'}
+	d = {'JSESSIONID': 'F01EBC6E9420AC697ABBBFBD3759C06E-n1', '39ce7': 'CF3FCRiI'}
 
-	url = 'http://codeforces.com/problemset/status/' + name[0] + '/problem/' + name[1]
+	url = 'https://codeforces.com/contest/' + name[0] + '/status/page/'
+
+	# https://codeforces.com/contest/1852/status/page/
 
 	c = requests.get(url, cookies = d)
 
@@ -26,41 +28,48 @@ def get_solution_ids(name, language):
 	if not m:
 		raise 'unable to get csrf token'
 
-	csrf_token = m.groups(1)
-
+	csrf_token = m.groups(1)[0]
+	
 	if language == 'delphi':
 		print("delphi_search")
 		c = requests.post(url,
-		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':'A', 'verdictName':'OK', 'programTypeForInvoker':'pas.dpr', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
-		headers = {'X-Csrf-Token':csrf_token[0]},
+		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 'verdictName':'OK', 'programTypeForInvoker':'pas.dpr', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
+		headers = {'X-Csrf-Token':csrf_token},
+		cookies = d
+		)
+	elif language == 'java17':
+		print("java17_search")
+		c = requests.post(url,
+		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 'verdictName':'OK', 'programTypeForInvoker':'java17', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
+		headers = {'X-Csrf-Token':csrf_token},
 		cookies = d
 		)
 	elif language == 'perl':
 		print("perl_search")
 		c = requests.post(url,
-		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':'A', 'verdictName':'OK', 'programTypeForInvoker':'perl.5', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
-		headers = {'X-Csrf-Token':csrf_token[0]},
+		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 'verdictName':'OK', 'programTypeForInvoker':'perl.5', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
+		headers = {'X-Csrf-Token':csrf_token},
 		cookies = d
 		)
 	elif language == 'd':
 		print("d_search")
 		c = requests.post(url,
-		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':'A', 'verdictName':'OK', 'programTypeForInvoker':'d', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
-		headers = {'X-Csrf-Token':csrf_token[0]},
+		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 'verdictName':'OK', 'programTypeForInvoker':'d', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
+		headers = {'X-Csrf-Token':csrf_token},
 		cookies = d
 		)
 	elif language == 'python3':
 		print("python3_search")
 		c = requests.post(url,
-		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':'A', 'verdictName':'OK', 'programTypeForInvoker':'python.3', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
-		headers = {'X-Csrf-Token':csrf_token[0]},
+		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 'verdictName':'REJECTED', 'programTypeForInvoker':'python.3', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
+		headers = {'X-Csrf-Token':csrf_token},
 		cookies = d
 		)
 	elif language == 'c++':
 		print("c++_search")
 		c = requests.post(url, 
-		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':'A', 'verdictName':'OK', 'programTypeForInvoker':'cpp.g++', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
-		headers = {'X-Csrf-Token':csrf_token[0]},
+		data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 'verdictName':'MEMORY_LIMIT_EXCEEDED', 'programTypeForInvoker':'cpp.g++', 'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
+		headers = {'X-Csrf-Token':csrf_token},
 		cookies = d
 		)
 	else:
@@ -79,6 +88,8 @@ def get_solution_ids(name, language):
 
 	text = soup.select("body a")
 
+	count = 0
+
 	for row in text:
 		message = ""
 		raw = str(row)
@@ -88,6 +99,9 @@ def get_solution_ids(name, language):
 			w = body.group(1)
 			message = str(w)
 			messages.append(message)
+			count += 1
+			if count == 5:
+				break
 
 	return messages
 
@@ -223,35 +237,22 @@ def get_solution(contest, solution_id):
 
 def download_descriptions_solutions(filename, index_n):
 	root_dir = 'codeforces_data'
-
-	file = open(filename, 'r')
 	f = open(filename, 'r')
-
-	index_n_int = int(index_n)
-
-	start = index_n_int + (600*index_n_int)
-	end = start + 599
 
 	all_names = []
 
 	for line in f:
 		raw = eval(str(line))
 
-	#print raw
+	all_names = raw[::-1]
 
-	a = ""
-	b = ""
+	language = ["c++", "delphi", "perl", "python3"] # , "delphi", "perl", "d", "c++"]
 
-	all_names = raw
-	#all_names = raw[start:end]
+	for _, name in enumerate(all_names):
 
-	language = ["python3"] # , "delphi", "perl", "d", "c++"]
-
-	for idx, i in enumerate(all_names):
-
-		descriptions, left_out, failed_to_download_d = get_description(i)
-		print(i)
-		if i not in left_out:
+		descriptions, left_out, failed_to_download_d = get_description(name)
+		print("name: ", name)
+		if name not in left_out:
 			if not os.path.exists(root_dir):
 				os.makedirs(root_dir)
 
@@ -264,7 +265,7 @@ def download_descriptions_solutions(filename, index_n):
 			save_dir = cat_dir + "/" + i
 			#'''
 
-			save_dir = root_dir + "/" + i[0] + "_" + i[1]
+			save_dir = root_dir + "/" + name[0] + "_" + name[1]
 
 			#'''
 			if not os.path.exists(save_dir):
@@ -282,14 +283,13 @@ def download_descriptions_solutions(filename, index_n):
 			ids_l = []
 			print(language)
 			for l in language:
-				print("l")
-				print(l)
-				ids = get_solution_ids(i, l)
+				print("l: ", l)
+				ids = get_solution_ids(name, l)
 				ids_l.append(ids)
 
-				print(ids)
+				print("ids: ", ids)
 				#solutions, failed_to_download_s = get_solutions(i, ids)
-				solutions = get_solutions(i, ids)
+				solutions = get_solutions(name, ids)
 				#print failed_to_download_s
 
 				solution_dir = save_dir + "/solutions_" + l
@@ -299,14 +299,11 @@ def download_descriptions_solutions(filename, index_n):
 
 				#print solutions
 
-				print('len(solutions)')
-				print(len(solutions))
+				print('len(solutions): ', len(solutions))
 
 
-				for jdx, j in enumerate(solutions):
+				for _, j in enumerate(solutions):
 					#solutions[j]
-
-					print(len(solutions[j]))
 					if len(solutions[j]) < 10000:
 						#solution_file_path = solution_dir + "/" + ids[jdx] + ".txt"
 						solution_file_path = solution_dir + "/" + j + ".txt"
