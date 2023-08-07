@@ -86,9 +86,10 @@ def get_description(i):
 	left_out = []
 	failed_to_download_d = []
 
-	url = 'http://codeforces.com/problemset/problem/' + str(i[0]) + '/' + str(i[1])
-
-	print(url)
+	url = 'http://codeforces.com/contest/' + str(i[0]) + '/problem/' + str(i[1])
+	# https://codeforces.com/contest/2/problem/B
+	
+	print("description url: ", url)
 
 	page = requests.get(url)
 
@@ -105,11 +106,8 @@ def get_description(i):
 			page = requests.get(url)
 			html_content = page.text
 
-
-
 	if html_content==None:
 		failed_to_download_d.append(i)
-
 
 	if re.search('src="http://codeforces.com/predownloaded', html_content.replace("\\", "")) == None and re.search('src="http://espresso.codeforces.com', html_content.replace("\\", "")) == None and re.search('"message":"Problem is not visible now. Please try again later."', html_content) == None and re.search('Statement is not available', html_content) == None:
 
@@ -149,7 +147,12 @@ def get_description(i):
 		w = w.replace("\xe2"," ")
 		w = w.replace("\xc2"," ")
 
-		descriptions.append(w.encode('utf-8').decode('raw_unicode-escape'))
+		content = w.encode('utf-8').decode('raw_unicode-escape')
+
+		print(content)
+		aaaa
+
+		descriptions.append(content)
 	else:
 		left_out.append(i)
 
@@ -221,7 +224,7 @@ def download_descriptions_solutions(filename, index_n):
 
 	all_names = raw[::-1]
 
-	language = ["delphi", "perl", "d", "java17", "python3", "c++", "c"]
+	language = ["delphi"] # , "perl", "d", "java17", "python3", "c++", "c"]
 
 	for _, name in enumerate(all_names):
 
