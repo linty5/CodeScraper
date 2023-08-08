@@ -39,7 +39,7 @@ def get_submission_ids(name, language, ver):
 
 	# ver_default = 'anyVerdict'
 	# ver_simpledict = {'OK': 'OK', 'REJECTED': 'REJECTED'}
-	ver_dict = {'OK': 'OK', 'WA': 'WRONG_ANSWER', 'RE': 'RUNTIME_ERROR', 'TLE': 'TIME_LIMIT_EXCEEDED', 'MLE': 'MEMORY_LIMIT_EXCEEDED', 'CE': 'COMPILATION_ERROR'}
+	ver_dict = {'OK': 'OK',  'REJECTED': 'REJECTED', 'WA': 'WRONG_ANSWER', 'RE': 'RUNTIME_ERROR', 'TLE': 'TIME_LIMIT_EXCEEDED', 'MLE': 'MEMORY_LIMIT_EXCEEDED', 'CE': 'COMPILATION_ERROR'}
 
 	print(language, " search, value: ", language_dict[language], " ver: ", ver_dict[ver])
 
@@ -151,7 +151,7 @@ def download_descriptions_solutions(filename, index_n):
 
 	all_infos = content["infos"]
 
-	language = ["delphi"] # , "perl", "d", "java17", "python3", "c++", "c"]
+	language = ["delphi", "perl", "d", "java17", "python3", "c++", "c"]
 
 	for _, info in enumerate(all_infos):
 
@@ -185,12 +185,12 @@ def download_descriptions_solutions(filename, index_n):
 				if not os.path.exists(solution_dir):
 					os.makedirs(solution_dir)
 
-				# ver_simplelist = ['OK', 'REJECTED']
-				ver_list = ['OK', 'WA', 'RE', 'TLE', 'MLE', 'CE']
+				ver_simplelist = ['OK', 'REJECTED']
+				# ver_list = ['OK', 'WA', 'RE', 'TLE', 'MLE', 'CE']
 
 				ids_l = []
 
-				for ver in ver_list:
+				for ver in ver_simplelist:
 					
 					submission_dir = solution_dir + "/" + ver
 

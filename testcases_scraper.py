@@ -30,7 +30,7 @@ def get_testcases(info, submission):
 
 	driver.get(url)
 
-	wait = WebDriverWait(driver, 1)
+	wait = WebDriverWait(driver, 10)
 	click_link = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'click-to-view-tests')))
 	click_link.click()
 

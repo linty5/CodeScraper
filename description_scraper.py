@@ -47,9 +47,9 @@ def get_description(info):
 		descriptions["memory_limit"] = re.search('memory limit per test</div>(.*?)</div>', body).group(1)
 		descriptions["input_spec"] = convert_text(re.search('<div class="section-title">Input</div><p>(.*?)</div>', body).group(1))
 		descriptions["output_spec"] = convert_text(re.search('<div class="section-title">Output</div><p>(.*?)</div>', body).group(1))
-		notes = convert_text(re.search('<div class="section-title">Note</div>(.*?)</div>', body))
+		notes = re.search('<div class="section-title">Note</div>(.*?)</div>', body)
 		if notes != None:
-			descriptions["notes"] = convert_text(re.search('<div class="section-title">Note</div>(.*?)</div>', body).group(1))
+			descriptions["notes"] = convert_text(notes.group(1))
 		
 		sample_inputs_list = re.findall('<div class="title">Input</div><pre>(.*?)</pre></div>', body)
 		descriptions["sample_inputs"] = []
