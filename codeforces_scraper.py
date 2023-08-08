@@ -8,9 +8,8 @@ import time
 import argparse
 import json
 
-def sub_strip(matchobj):   
-    return matchobj.group(0).replace(u"\u2009", "")
-
+from description_scraper import get_description
+from testcases_scraper import get_testcases
 
 def get_submission_ids(name, language, ver):
 	
@@ -81,105 +80,6 @@ def get_submission_ids(name, language, ver):
 				break
 
 	return messages
-
-def convert_text(w):
-	w = w.replace('class="upper-index">', 'class="upper-index">^')
-
-	'''NEED TO PUT PUT CODE HERE TO REMOVE SPACES IN NEGATIVE EXPONENTS'''
-	w = re.sub('class="upper-index">(.+?)</sup>', sub_strip, w, re.S)
-
-	w = w.replace("</p>", "\n</p>")
-	w = w.replace("<br", "\n<br")
-
-	w = w.replace("</div>", "\n</div>")
-	w = w.replace("</center>", "\n</center>")
-
-	w = BeautifulSoup(w, "html.parser").get_text()
-	w = w.replace("All submissions for this problem are available.", "")
-
-	w = re.sub('Read problems statements in (.+?)\\\\n', '', w, re.M)
-	w = re.sub('Subtasks(.+?)Example', 'Example', w, re.S)
-
-	w = w.replace("\u003C","<")
-	w = w.replace("\u003E",">")
-
-	w = w.replace("\n\n\n\n\n\n","\n\n\n")
-	w = w.replace("\n\n\n\n","\n\n\n")
-
-	w = w.replace("\\","\\\\")
-
-	w = w.replace("\xe2"," ")
-	w = w.replace("\xc2"," ")
-	w = w.replace("\u2009","")
-
-	# content = w.encode('utf-8').decode('unicode-escape')
-
-	return w
-
-
-def get_description(info):
-	descriptions = {}
-	left_out = []
-	failed_to_download_d = []
-
-	url = 'http://codeforces.com/contest/' + str(info[0]) + '/problem/' + str(info[1])
-	# https://codeforces.com/contest/2/problem/B
-
-	page = requests.get(url)
-
-	if str(page) == "<Response [503]>":
-		while str(page) == "<Response [503]>":
-			time.sleep(1)
-			page = requests.get(url)
-
-	html_content = page.text
-
-	if re.search('"message":"requests limit exhausted"', html_content) != None:
-		while re.search('message":"requests limit exhausted', html_content) != None:
-			time.sleep(1)
-			page = requests.get(url)
-			html_content = page.text
-
-	if html_content==None:
-		failed_to_download_d.append(info)
-
-	# html_content = html_content.encode('utf-8').decode('unicode-escape')
-
-	if re.search('src="http://codeforces.com/predownloaded', html_content.replace("\\", "")) == None and re.search('src="http://espresso.codeforces.com', html_content.replace("\\", "")) == None and re.search('"message":"Problem is not visible now. Please try again later."', html_content) == None and re.search('Statement is not available', html_content) == None:
-		
-		# body = re.findall('</div></div><div>(.+?)<script type="text/javascript">', html_content, flags=re.S)
-		
-		body = re.search('<div class="problem-statement">(.*)</div>', html_content).group(1)
-
-		descriptions["title"] = re.search('<div class="title">(.*?)</div>', body).group(1)
-		descriptions["description"] = convert_text(re.search('</div></div><div><p>(.*?)<div class="input-specification">', body).group(1))
-		descriptions["input_from"] = re.search('input</div>(.*?)</div>', body).group(1)
-		descriptions["output_to"] = re.search('output</div>(.*?)</div>', body).group(1)
-		descriptions["time_limit"] = re.search('time limit per test</div>(.*?)</div>', body).group(1)
-		descriptions["memory_limit"] = re.search('memory limit per test</div>(.*?)</div>', body).group(1)
-		descriptions["input_spec"] = convert_text(re.search('<div class="section-title">Input</div><p>(.*?)</div>', body).group(1))
-		descriptions["output_spec"] = convert_text(re.search('<div class="section-title">Output</div><p>(.*?)</div>', body).group(1))
-		descriptions["notes"] = convert_text(re.search('<div class="section-title">Note</div>(.*?)</div>', body).group(1))
-		
-		sample_inputs_list = re.findall('<div class="title">Input</div><pre>(.*?)</pre></div>', body)
-		descriptions["sample_inputs"] = []
-		for sample_inputs in sample_inputs_list:
-			descriptions["sample_inputs"].append(convert_text(sample_inputs))
-		
-		sample_outputs_list = re.findall('<div class="title">Output</div><pre>(.*?)</pre></div>', body)
-		descriptions["sample_outputs"] = []
-		for sample_outputs in sample_outputs_list:
-			descriptions["sample_outputs"].append(convert_text(sample_outputs))
-		
-		descriptions["id"] = info[0] + "-" + info[1]
-		descriptions["difficulty"] = info[2]
-		descriptions["tags"] = info[3]
-
-	else:
-		left_out.append(info)
-
-	return descriptions, left_out, failed_to_download_d
-
 
 def get_submissions(contest, submission_ids, l, ver):
 	submissions = {}
@@ -261,18 +161,8 @@ def download_descriptions_solutions(filename, index_n):
 			if not os.path.exists(root_dir):
 				os.makedirs(root_dir)
 
-			'''
-			cat_dir = root_dir + "/" + category
-
-			if not os.path.exists(cat_dir):
-			    os.makedirs(cat_dir)
-
-			save_dir = cat_dir + "/" + i
-			#'''
-
 			save_dir = root_dir + "/" + info[0] + "_" + info[1]
 
-			#'''
 			if not os.path.exists(save_dir):
 				os.makedirs(save_dir)
 
@@ -285,6 +175,8 @@ def download_descriptions_solutions(filename, index_n):
 
 			with open(description_file_path, 'w', encoding='utf-8') as description_file:
 				json.dump(descriptions, description_file)
+
+			testcases_flag = 1
 
 			for l in language:
 					
@@ -312,25 +204,38 @@ def download_descriptions_solutions(filename, index_n):
 
 					if len(submissions) == 0:
 						continue
+					
+					if testcases_flag:
+						testcases_dir = save_dir + "/testcases"
+
+						if not os.path.exists(testcases_dir):
+							os.makedirs(testcases_dir)
+
+						testcases_file_path = testcases_dir + "/testcases.json"
+
+						testcases, failed_to_download_t = get_testcases(info, list(submissions.keys())[0])
+
+						with open(testcases_file_path, 'w', encoding='utf-8') as testcases_file:
+							json.dump(testcases, testcases_file)
+
+						testcases_flag = 0
 
 					if not os.path.exists(submission_dir):
 						os.makedirs(submission_dir)
 
 					for _, j in enumerate(submissions):
-						submission_file_path = submission_dir + "/" + j + ".txt"
+						submission_file_path = submission_dir + "/" + j + ".json"
 						with open(submission_file_path, 'w', encoding='utf-8') as submission_file:
 							json.dump(submissions[j], submission_file)
-
-						# if len(submissions[j]) < 10000:
-						# 	submission_file_path = submission_dir + "/" + j + ".txt"
-						# 	submission_file = open(submission_file_path, 'w', encoding = 'utf-8')
-						# 	submission_file.write(submissions[j])
 
 				if len(ids_l) == 0:
 					shutil.rmtree(solution_dir)
 
 		if len(failed_to_download_d) > 0:
-			print("Following challenges failed to download: " + str(failed_to_download_d))
+			print("Following challenges failed to download descriptions: " + str(failed_to_download_d))
+
+		if len(failed_to_download_t) > 0:
+			print("Following submissions failed to download testcases: " + str(failed_to_download_t))
 	
 parser = argparse.ArgumentParser()
 parser.add_argument('--index', type=str, default="0", help='')
