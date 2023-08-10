@@ -22,7 +22,7 @@ def get_testcases(info, submission):
 	chrome_driver_path = "E:\chromedriver-win64\chromedriver.exe" 
 
 	chrome_options = webdriver.ChromeOptions()
-	chrome_options.add_argument('--headless')
+	# chrome_options.add_argument('--headless')
 	chrome_options.add_argument('--disable-web-security') 
 	chrome_options.add_argument('--ignore-certificate-errors')  
 	chrome_options.add_argument('--allow-running-insecure-content')

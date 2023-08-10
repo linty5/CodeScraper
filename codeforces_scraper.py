@@ -17,7 +17,9 @@ def get_submission_ids(name, language, ver):
 
 	d = {'JSESSIONID': '38394F746A5A47E823B68D943B704931-n1', '39ce7': 'CFFq98Ot'}
 
-	url = 'https://codeforces.com/contest/' + name[0] + '/status/page/'
+	url = 'https://codeforces.com/contest/' + name[0] + '/status/page/1'
+
+	print("url: ", url)
 
 	c = requests.get(url, cookies = d)
 
@@ -38,13 +40,12 @@ def get_submission_ids(name, language, ver):
 		print("Haven't include this language --> ", language)
 
 	# ver_default = 'anyVerdict'
-	# ver_simpledict = {'OK': 'OK', 'REJECTED': 'REJECTED'}
 	ver_dict = {'OK': 'OK',  'REJECTED': 'REJECTED', 'WA': 'WRONG_ANSWER', 'RE': 'RUNTIME_ERROR', 'TLE': 'TIME_LIMIT_EXCEEDED', 'MLE': 'MEMORY_LIMIT_EXCEEDED', 'CE': 'COMPILATION_ERROR'}
 
 	print(language, " search, value: ", language_dict[language], " ver: ", ver_dict[ver])
 
 	c = requests.post(url,
-	data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':str(name[1]), 
+	data = {'csrf_token':csrf_token, 'action':'setupSubmissionFilter', 'frameProblemIndex':name[1], 
 	 	    'verdictName':ver_dict[ver], 'programTypeForInvoker':language_dict[language], 
 			'comparisonType':'NOT_USED', 'judgedTestCount':'', '_tta':'199'},  
 	headers = {'X-Csrf-Token':csrf_token},
@@ -56,34 +57,44 @@ def get_submission_ids(name, language, ver):
 		while str(page) == "<Response [503]>":
 			time.sleep(1)
 			page = requests.get(url)
+
 	html_content = page.text
-
 	soup = BeautifulSoup(html_content, "html.parser") # making soap
-
-	messages = []
-
 	text = soup.select("body a")
-
 	count = 0
 
-	for row in text:
-		message = ""
-		raw = str(row)
-		body = re.search('submissionid="(.*)" t', raw)
+	messages = []
+	author_list = []
+	message = []
 
-		if body != None:
-			w = body.group(1)
-			message = str(w)
-			messages.append(message)
-			count += 1
-			if count == 3:
-				break
+	for row in text:
+		raw = str(row)
+		submissionid = re.search('submissionid="(.*)" t', raw)
+		participantid = re.search('href="/profile/(.+?)" title', raw)
+
+		if submissionid != None:
+			sid = str(submissionid.group(1))
+			message.append(sid)
+		if participantid != None:
+			pid = str(participantid.group(1))
+			if len(message) > 0:
+				if pid in author_list:
+					message = []
+					continue
+				else:
+					author_list.append(pid)
+					message.append(pid)
+					messages.append(message)
+					message = []
+					count += 1
+					if count == 3:
+						break
 
 	return messages
 
-def get_submissions(contest, submission_ids, l, ver):
+def get_submissions(contest, messages, l, ver):
 	submissions = {}
-	for i in submission_ids:
+	for i in messages:
 		data = get_submission(contest, i, l, ver)
 		if data[2] == None:
 			submissions[data[0]] = data[1]
@@ -100,7 +111,10 @@ def get_submissions(contest, submission_ids, l, ver):
 
 	return submissions
 
-def get_submission(contest, submission_id, l, ver):
+def get_submission(contest, messages, l, ver):
+	submission_id = messages[0]
+	participant_id = messages[1]
+
 	url = 'http://codeforces.com/contest/' + str(contest[0]) + '/submission/' + str(submission_id)
 	print(url)
 
@@ -138,6 +152,8 @@ def get_submission(contest, submission_id, l, ver):
 	submission_content["tags"] = contest[3]
 	submission_content["lang_cluster"] = l
 	submission_content["id"] = contest[0] + "-" + contest[1]
+	submission_content["submission_id"] = str(submission_id)
+	submission_content["participant_id"] = str(participant_id)
 	submission_content["difficulty"] = contest[2]
 	submission_content["exec_outcome"] = ver
 
@@ -145,17 +161,26 @@ def get_submission(contest, submission_id, l, ver):
 
 def download_descriptions_solutions(filename, index_n):
 	root_dir = 'codeforces_data'
+	exists_list = []
+	check_flag = 1
+	if os.path.exists(root_dir):
+		exists_list = os.listdir(root_dir)
 
 	with open(filename, 'r', encoding='utf-8') as f:
 		content = json.load(f)
 
 	all_infos = content["infos"]
 
-	language = ["delphi", "perl", "d", "java17", "python3", "c++", "c"]
+	language = ["c++", "delphi", "perl", "d"] # "java17", "python3", "c++", "c"]
 
 	for _, info in enumerate(all_infos):
 
 		print("info: ", info)
+		if check_flag:
+			if (info[0] + "_" + info[1]) in exists_list:
+				continue
+			else:
+				check_flag = 0
 		descriptions, left_out, failed_to_download_d = get_description(info)
 		if info not in left_out:
 			if not os.path.exists(root_dir):
@@ -188,17 +213,17 @@ def download_descriptions_solutions(filename, index_n):
 				ver_simplelist = ['OK', 'REJECTED']
 				# ver_list = ['OK', 'WA', 'RE', 'TLE', 'MLE', 'CE']
 
-				ids_l = []
+				messages_l = []
 
 				for ver in ver_simplelist:
 					
 					submission_dir = solution_dir + "/" + ver
 
-					ids = get_submission_ids(info, l, ver)
-					ids_l.append(ids)
+					messages = get_submission_ids(info, l, ver)
+					messages_l.append(messages)
 
-					print("ids: ", ids)
-					submissions = get_submissions(info, ids, l, ver)
+					print("messages: ", messages)
+					submissions = get_submissions(info, messages, l, ver)
 					
 					print('len(submissions): ', len(submissions))
 
@@ -228,7 +253,7 @@ def download_descriptions_solutions(filename, index_n):
 						with open(submission_file_path, 'w', encoding='utf-8') as submission_file:
 							json.dump(submissions[j], submission_file)
 
-				if len(ids_l) == 0:
+				if len(messages_l) == 0:
 					shutil.rmtree(solution_dir)
 
 		if len(failed_to_download_d) > 0:
