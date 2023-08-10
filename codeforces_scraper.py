@@ -125,30 +125,33 @@ def get_submission(contest, messages, l, ver):
 			page = requests.get(url)
 	html_content = page.text
 
-	# table_content = re.search('<div class="datatable""(.*?)</div>', html_content).group(1)
-
 	soup = BeautifulSoup(html_content, "html.parser")
-
+	table_content = str(soup.find('table'))
 	text = soup.select("body > div > div > div > div > pre")
+
+	table_list = re.findall('<td>(.*?)</td>', table_content, re.DOTALL)
 
 	failed_to_download = None
 	submission = None
-
 
 	if len(text)==0:
 		failed_to_download = submission_id
 	else:
 		body = BeautifulSoup(str(text[0]), "html.parser").get_text()
-
 		body = body.replace("\\","\\\\")
 		submission = body.encode('utf-8').decode('unicode-escape')
 
 
 	submission_content = {}
 
-	submission_content["lang"] = l
-	submission_content["source_code"] = submission
+	submission_content["lang"] = table_list[3].strip()
+	submission_content["verdict"] = re.search('>(.*?)</span>', table_list[4]).group(1)
+	submission_content["time"] = table_list[5].strip()
+	submission_content["memory"] = table_list[6].strip()
+	submission_content["sent"] = table_list[7].strip()
+	submission_content["judged"] = table_list[8].strip()
 
+	submission_content["source_code"] = submission
 	submission_content["tags"] = contest[3]
 	submission_content["lang_cluster"] = l
 	submission_content["id"] = contest[0] + "-" + contest[1]
