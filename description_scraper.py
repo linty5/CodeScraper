@@ -28,19 +28,28 @@ def get_description(info):
 			page = requests.get(url)
 			html_content = page.text
 
-	if html_content==None:
+	if html_content==None or html_content[:4] == "%PDF":
 		failed_to_download_d.append(info)
+		return descriptions, left_out, failed_to_download_d
 
 	# html_content = html_content.encode('utf-8').decode('unicode-escape')
 
 	if re.search('src="http://codeforces.com/predownloaded', html_content.replace("\\", "")) == None and re.search('src="http://espresso.codeforces.com', html_content.replace("\\", "")) == None and re.search('"message":"Problem is not visible now. Please try again later."', html_content) == None and re.search('Statement is not available', html_content) == None:
 		
 		# body = re.findall('</div></div><div>(.+?)<script type="text/javascript">', html_content, flags=re.S)
-		
-		body = re.search('<div class="problem-statement">(.*)</div>', html_content).group(1)
+		body = re.search('<div class="problem-statement">(.*)</div>', html_content)
+		if body == None:
+			failed_to_download_d.append(info)
+			return descriptions, left_out, failed_to_download_d
+		else:
+			body = body.group(1)
+
+		if ("interactive") in body or ("Interaction") in body:
+			failed_to_download_d.append(info)
+			return descriptions, left_out, failed_to_download_d
 
 		descriptions["title"] = re.search('<div class="title">(.*?)</div>', body).group(1)
-		descriptions["description"] = convert_text(re.search('</div></div><div><p>(.*?)<div class="input-specification">', body).group(1))
+		descriptions["description"] = convert_text(re.search('</div></div><div>(.*?)<div class="input-specification">', body).group(1))
 		descriptions["input_from"] = re.search('input</div>(.*?)</div>', body).group(1)
 		descriptions["output_to"] = re.search('output</div>(.*?)</div>', body).group(1)
 		descriptions["time_limit"] = re.search('time limit per test</div>(.*?)</div>', body).group(1)

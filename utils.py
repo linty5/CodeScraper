@@ -30,7 +30,7 @@ def convert_text(w):
 	w = w.replace("\n\n\n\n\n\n","\n\n\n")
 	w = w.replace("\n\n\n\n","\n\n\n")
 
-	w = w.replace("\\","\\\\")
+	# w = w.replace("\\","\\\\")
 
 	w = w.replace("\xe2"," ")
 	w = w.replace("\xc2"," ")

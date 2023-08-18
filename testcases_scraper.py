@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import re
-import requests
 import time
 
 from selenium import webdriver
@@ -30,32 +29,35 @@ def get_testcases(info, submission):
 
 	driver.get(url)
 
-	wait = WebDriverWait(driver, 10)
-	click_link = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'click-to-view-tests')))
-	click_link.click()
+	try:
+		wait = WebDriverWait(driver, 10)
+		click_link = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'click-to-view-tests')))
+		click_link.click()
 
-	time.sleep(1)
-	tests_placeholder = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'tests-placeholder')))
-	expanded_content = tests_placeholder.get_attribute('innerHTML')
+		time.sleep(1)
+		tests_placeholder = wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'tests-placeholder')))
+		expanded_content = tests_placeholder.get_attribute('innerHTML')
 
-	if expanded_content==None:
+		if expanded_content==None:
+			failed_to_download_t.append(info)
+			return testcases, failed_to_download_t
+
+		# html_content = html_content.encode('utf-8').decode('unicode-escape')
+		
+		input_list = re.findall('<pre class="input">(.+?)</pre>', expanded_content, re.DOTALL)
+		answer_list = re.findall('<pre class="answer">(.+?)</pre>', expanded_content, re.DOTALL)
+		time_list = re.findall('<span class="timeConsumed">(.+?)</span>', expanded_content, re.DOTALL)
+		mem_list = re.findall('<span class="memoryConsumed">(.+?)</span>', expanded_content, re.DOTALL)
+
+		for i in range(1, len(time_list)):
+			tmp = {"input":[], "answer":[], "time":[], "mem":[]}
+			tmp["input"].append(input_list[i])
+			tmp["answer"].append(answer_list[i])
+			tmp["time"].append(time_list[i])
+			tmp["mem"].append(mem_list[i])
+			testcases[str(info[0] + "_" + info[1])].append(tmp)
+	except:
 		failed_to_download_t.append(info)
-		return testcases, failed_to_download_t
-
-	# html_content = html_content.encode('utf-8').decode('unicode-escape')
-	
-	input_list = re.findall('<pre class="input">(.+?)</pre>', expanded_content, re.DOTALL)
-	answer_list = re.findall('<pre class="answer">(.+?)</pre>', expanded_content, re.DOTALL)
-	time_list = re.findall('<span class="timeConsumed">(.+?)</span>', expanded_content, re.DOTALL)
-	mem_list = re.findall('<span class="memoryConsumed">(.+?)</span>', expanded_content, re.DOTALL)
-
-	for i in range(1, len(time_list)):
-		tmp = {"input":[], "answer":[], "time":[], "mem":[]}
-		tmp["input"].append(input_list[i])
-		tmp["answer"].append(answer_list[i])
-		tmp["time"].append(time_list[i])
-		tmp["mem"].append(mem_list[i])
-		testcases[str(info[0] + "_" + info[1])].append(tmp)
 
 	driver.quit()
 
