@@ -56,6 +56,10 @@ def get_testcases(info, submission):
 			tmp["time"].append(time_list[i])
 			tmp["mem"].append(mem_list[i])
 			testcases[str(info[0] + "_" + info[1])].append(tmp)
+		
+		if len(testcases[str(info[0] + "_" + info[1])]) == 0:
+			failed_to_download_t.append(info)
+
 	except:
 		failed_to_download_t.append(info)
 

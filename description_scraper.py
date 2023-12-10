@@ -48,14 +48,19 @@ def get_description(info):
 			failed_to_download_d.append(info)
 			return descriptions, left_out, failed_to_download_d
 
-		descriptions["title"] = re.search('<div class="title">(.*?)</div>', body).group(1)
-		descriptions["description"] = convert_text(re.search('</div></div><div>(.*?)<div class="input-specification">', body).group(1))
-		descriptions["input_from"] = re.search('input</div>(.*?)</div>', body).group(1)
-		descriptions["output_to"] = re.search('output</div>(.*?)</div>', body).group(1)
-		descriptions["time_limit"] = re.search('time limit per test</div>(.*?)</div>', body).group(1)
-		descriptions["memory_limit"] = re.search('memory limit per test</div>(.*?)</div>', body).group(1)
-		descriptions["input_spec"] = convert_text(re.search('<div class="section-title">Input</div><p>(.*?)</div>', body).group(1))
-		descriptions["output_spec"] = convert_text(re.search('<div class="section-title">Output</div><p>(.*?)</div>', body).group(1))
+		try:
+			descriptions["title"] = re.search('<div class="title">(.*?)</div>', body).group(1)
+			descriptions["description"] = convert_text(re.search('</div></div><div>(.*?)<div class="input-specification">', body).group(1))
+			descriptions["input_from"] = re.search('input</div>(.*?)</div>', body).group(1)
+			descriptions["output_to"] = re.search('output</div>(.*?)</div>', body).group(1)
+			descriptions["time_limit"] = re.search('time limit per test</div>(.*?)</div>', body).group(1)
+			descriptions["memory_limit"] = re.search('memory limit per test</div>(.*?)</div>', body).group(1)
+			descriptions["input_spec"] = convert_text(re.search('<div class="section-title">Input</div><p>(.*?)</div>', body).group(1))
+			descriptions["output_spec"] = convert_text(re.search('<div class="section-title">Output</div><p>(.*?)</div>', body).group(1))
+		except Exception as e:
+			failed_to_download_d.append(info)
+			return descriptions, left_out, failed_to_download_d
+
 		notes = re.search('<div class="section-title">Note</div>(.*?)</div>', body)
 		if notes != None:
 			descriptions["notes"] = convert_text(notes.group(1))
